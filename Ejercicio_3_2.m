@@ -154,7 +154,7 @@ ylabel('Retardo de grupo [ms]');
 title("Retardo de grupo de los diferentes sistemas");
 legend("Sistema electroacústico","Ecualizador","Sistema total");
 
-
+save equalizador_iir.mat num_eq den_eq;
 
 
 

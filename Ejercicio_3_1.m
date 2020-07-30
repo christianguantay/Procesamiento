@@ -228,7 +228,9 @@ title(['Filtro multibanda diseñado, de orden ',num2str(M)]);
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 % Resultado final
 
-H_tot = H.*H_eq;
+%H_tot = H.*H_eq;
+
+[H_tot, W_tot] = freqz(conv(h,h_eq),1,nfft);
 
 %Comparación de los resultados
 
@@ -284,3 +286,7 @@ xlabel('\omega / \pi (Frecuencia normalizada)');
 ylabel('Muestras');
 title("Comparación de los retardos de fase");
 legend("Sistema total","Sistema equalizador", "Sistema Electroacústico");
+
+% Se exporta el sistema equalizador FIR 
+
+save equalizador_fir.mat h_eq;
