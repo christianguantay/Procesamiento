@@ -2,20 +2,22 @@ clear all;
 close all;
 clc;
 
-
 % En este archivo se integran los diferentes filtros que se hicieron en los
 % ejercicios, y se los prueba junto con las señales de audio.
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 % Se importa el sistema electroacústico
 
 load h_sys.mat;
+
 fs = 44.1e3;
 nfft = 4*2048;
 
-k = 2;
-
-
-
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+% Esta constante sirve solamente para compilar distintas partes de este archivo
+% k = 1 ==> Notch FIR + Ecualizador FIR
+% k = 2 ==> Notch IIR + Ecualizador IIR
+k = 2; 
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 % Ejercicio 2
 % Se importa el filtro Notch FIR
 
@@ -31,16 +33,13 @@ load notch_iir.mat;
 load equalizador_fir.mat;
 
 % Se importa el equalizador IIR
-% Se importa en forma de coeficientes del numerador y denominador
 load equalizador_iir.mat;
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 % Se lee el archivo de pista
-[x,fs]=audioread('CANCIONES/pista_01.wav');
-x = x';
+[x,fs]=audioread('CANCIONES/pista_05.wav');
 
-% Se leen las interferencias
-%load interferencia.mat;
+x = x';
 
 % Se le aplica el sistema electroacústico
 
@@ -56,18 +55,16 @@ A2 = 0.03;
 A3 = 0.02;
 
 ts = 1/fs;
-
-t = 0:ts:(length(x)/fs);
-t = t(1:end-1);
+L = length(x);
+t = (0:L-1) * ts;
 
 noise = A1*cos(2*pi*f1*t) + A2*cos(2*pi*f2*t) + A3*cos(2*pi*f3*t);
 
 x_2 = x_1 + noise;
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-if(k==1)
 % Primer caso: filtro notch FIR + ecualizador FIR
-
+if(k==1)
 % Se aplica el filtro notch FIR
 
 x_31 = filter(h123,1,x_2);
@@ -95,7 +92,7 @@ legend('Sistema total','Límite +2 dB','Límite -2 dB')
 xlabel('\omega / \pi (Frecuencia normalizada)');
 ylabel('Amplitud [dB]');
 title('Sistema total');
-%
+
 %% Se reproduce la señal en todas sus etapas
 %sound(x,fs);    % Señal original
 %sound(x_1,fs);  % Señal luego del sistema electroacústico
@@ -106,27 +103,15 @@ endif
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 % Segundo caso: filtro notch IIR + ecualizador IIR
 if(k==2)
-% Se aplica el primer filtro Notch IIR
+% Se aplican todos los filtros Notch IIR uno a la vez
 
-x_321 = filter(numerador_f1,denominador_f1,x_2);
-x_322 = filter(numerador_f2,denominador_f2,x_321);
-x_32 = filter(numerador_f3,denominador_f3,x_322);
+x_32 = filter(num_notch_iir,den_notch_iir,x_2);
+x_42 = filter(num_eq,den_eq,x_32);
 
 %Se reproduce la señal en todas sus etapas
 %sound(x,fs);    % Señal original
 %sound(x_1,fs);  % Señal luego del sistema electroacústico
 %sound(x_2,fs);  % Señal luego del sistema electroacústico más ruido
 %sound(x_32,fs); % Señal luego del notch
-
-y = fft(noise,nfft/4);
-
-
-w = linspace(0,2*pi,nfft/4);
-
-figure
-hold on;
-plot(w/pi,abs(y));
-xlim([0 1]);
-grid on;
-
+%sound(x_42,fs); % Señal luego del filtro ecualizador
 endif

@@ -36,12 +36,12 @@ function[numerador,denominador] = filtro_notch_iir_butterworth(f1,r1,r2,delta_p,
 
   d = sqrt(((1-delta_p)^(-2) -1)/(delta_s^(-2) - 1));
   k = omega_p/omega_s;
+  
+  N = floor(log(1/d)/log(1/k));  % Orden del pasa bajos
 
-  N = ceil(log(1/d)/log(1/k));  % Orden del pasa bajos
   omega_0 = (omega_p * ((1-delta_p)^(-2) -1)^(-1/(2*N)) + omega_s * (delta_s^(-2) - 1)^(-1/(2*N)))/2;
 
   % Butterworth pasa bajos IIR continuo
-  
   [z,p,g] = butter(N,omega_0,"low","s");
 % Con esto defino los polos y ceros del notch IIR
 
@@ -58,8 +58,10 @@ function[numerador,denominador] = filtro_notch_iir_butterworth(f1,r1,r2,delta_p,
     polo_del_notch = [((-omega_h + omega_l) + sqrt((omega_h - omega_l)^2 -4 * p(i)^2 * omega_h * omega_l))/(-2 * p(i)) , ((-omega_h + omega_l) - sqrt((omega_h - omega_l)^2 -4 * p(i)^2 * omega_h * omega_l))/(-2 * p(i))];
     p_notch = [p_notch polo_del_notch];
   endfor
+  
 
-  % Transformo usando la transformada bilineal
+
+  % Transformo usando la ransformada bilineal
 
   [zb_notch, za_notch] = bilinear(z_notch,p_notch,g_notch,1/fs);
   numerador = zb_notch;
@@ -82,13 +84,8 @@ r2 = 0.0025;
 delta_p = 0.02;
 delta_s = 0.1;
 
-
-
 % Se calculan los filtros IIR Notch discretos
 
-%[z_1,p_1,g_1] = filtro_notch_iir_butterworth(f1,r1,r2,delta_p,delta_s,fs);
-%[z_2,p_2,g_2] = filtro_notch_iir_butterworth(f2,r1,r2,delta_p,delta_s,fs);
-%[z_3,p_3,g_3] = filtro_notch_iir_butterworth(f2,r1,r2,delta_p,delta_s,fs);
 
 [numerador_f1, denominador_f1] = filtro_notch_iir_butterworth(f1,r1,r2,delta_p,delta_s,fs);
 [numerador_f2, denominador_f2] = filtro_notch_iir_butterworth(f2,r1,r2,delta_p,delta_s,fs);
@@ -120,7 +117,15 @@ titulo = sprintf('Respuesta en frecuencia de los filtros notch IIR de orden %i',
 title(titulo);
 
 
-% Se exportan los filtros IIR para luego usarlos
+% Cascada de los 3 filtros
+num1 = conv(numerador_f3,numerador_f2);
+num_notch_iir = conv(numerador_f1,num1);
+den1 = conv(denominador_f3,denominador_f2);
+den_notch_iir = conv(denominador_f1,den1);
 
-save notch_iir.mat numerador_f1 denominador_f1 numerador_f2 denominador_f2 numerador_f3 denominador_f3;
+% Se exporta el filtro notch IIR para usarlo
+
+
+
+save notch_iir.mat num_notch_iir den_notch_iir;
 

@@ -109,10 +109,10 @@ for i=(1:6)
   line([W_inv(n_inicio(i))/pi W_inv(n_fin(i))/pi], [A_inf(i) A_inf(i)], "linestyle","-","color","k","linewidth",1);
   hold on;
   x =  W_inv(n_inicio(i))/pi;
-  plot([x,x],[A_sup(i), A_inf(i)],'k-','linewidth',1);
+  plot([x,x],[A_sup(i), 0],'k-','linewidth',1);
   hold on;
   x =  W_inv(n_fin(i))/pi;
-  plot([x,x],[A_sup(i), A_inf(i)],'k-','linewidth',1);
+  plot([x,x],[A_sup(i), 0],'k-','linewidth',1);
 endfor
 
 xlim([0 1]);
@@ -120,6 +120,7 @@ xlabel('\omega / \pi (Frecuencia normalizada)');
 ylabel('Amplitud');
 title("Bandas identificadas en el sistema inverso");
 grid on;
+legend('sistema inverso','tolerancia máxima permitida');
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 % Diseño del multibanda
@@ -201,7 +202,7 @@ plot(W_eq/pi, abs(H_eq));
 %hold on;
 %plot(W_inv/pi,abs(H_inv)*(1-delta_H_tot),'linewidth',1,'r-');
 hold on;
-plot(W_inv/pi,abs(H_inv),'linewidth',1,'r-');
+%plot(W_inv/pi,abs(H_inv),'linewidth',1,'r-');
 legend('multibanda diseñado','Sistema inverso');
 for i=(1:6)
   hold on;
@@ -249,8 +250,8 @@ grid on;
 xlim([0 1]);
 grid on;
 xlabel('\omega / \pi (Frecuencia normalizada)');
-ylabel('Amplitud [dB]');
-title("Comparación de las amplitudes");
+ylabel('Módulo [dB]');
+title("Comparación del módulo de los sistemas");
 set(gca, 'ytick', -15:1:15);
 legend("Sistema total","Límite +2 dB","Límite -2 dB","Sistema equalizador", "Sistema Electroacústico");
 
