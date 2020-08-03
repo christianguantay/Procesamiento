@@ -2,8 +2,12 @@
 clear all;
 close all;
 
+%Colores
+blue = [0, 0.4470, 0.7410];
+orange = [0.8500, 0.3250, 0.0980];
+
 %Leo la pista dada en el enunciado
-[x,fs]=audioread('pista_01.wav');
+[input,fs]=audioread('pista_01.wav');
 
 %%Grafico de la interferencia
 f1 = 210;
@@ -16,252 +20,166 @@ A3 = 0.02;
 
 ts = 1/fs;
 
-t = 0:ts:(length(x)/44100);
+t = 0:ts:(length(input)/44100);
 t = t(1:end-1);
 
-nfft = 4*2048;
-
 noise = A1*cos(2*pi*f1*t) + A2*cos(2*pi*f2*t) + A3*cos(2*pi*f3*t) ;
-[h,w]=freqz(noise,nfft);
 
-figure, plot(w,abs(h),'b');
-
-figure,plot(t,noise,'r');
+figure,plot(t,noise,'Color', blue);
+ylabel('Amplitud');
+xlabel('t[s] (Tiempo)');
 xlim([0 0.08]);
 grid on;
-str='0.08s de interferencia';
+str='Señal de interferencia';
 title(str);
 auxFFT  = abs(fft(noise,2^nextpow2(length(noise))));
+auxFFT  = auxFFT/max(auxFFT); 
 w       = 0:2*pi/(length(auxFFT)-1):2*pi;
-figure,plot(w(1,1:floor(length(w)/2)),auxFFT(1,1:floor(length(w)/2)),'r');
+figure,plot(w(1,1:floor(length(w)/2)),auxFFT(1,1:floor(length(w)/2)),'Color', blue);
+ylabel('Amplitud');
+xlabel('w(Frecuencia)');
+ylim([0 1.2])
 grid on;
-str='FFT de la interferencia';
+str='Respuesta en frecuencia de la interferencia';
 title(str);
 
-%% Diseï¿½o del filtro notch 1
-% Creo este filtro como una combinacion de un filtro pasabajos y pasaalto
+%% Diseño los filtros notch
 
-% Diseï¿½o del pasabajos 1
+h1 = notch_flg_rect(0.0095);
+h2 = notch_flg_rect(0.017);
+h3 = notch_flg_rect(0.0326);
 
-ws_lp = 0.0094*pi;      
-wp_lp = 0.009*pi; %0.0092
-wc_lp = (ws_lp+wp_lp)/2;                
+%% Creo  el filtro en cascada
+h1f = dfilt.df2(h1,1);
+h2f = dfilt.df2(h2,1);
+h3f = dfilt.df2(h3,1);
 
-delta_w_lp=ws_lp-wp_lp;                    
+hd = dfilt.cascade(h1f, h2f,h3f);
 
-% Diseï¿½o del pasaaltos 1
-ws_hp = 0.0096*pi;      
-wp_hp = 0.01*pi; %0.0098
-wc_hp = (ws_hp+wp_hp)/2;  
-
-delta_w_hp=wp_hp-ws_hp;
-
-delta_w=min(delta_w_lp,delta_w_hp);
-
-N= ceil(4*pi/delta_w); % Orden del filtro.
-if( mod(N,2)~=0 ) % Chequeo si es par
-    N=N+1;
-end
-%Creo los filtros
-
-n = 0:N; 
-
-sinc_desp=sin(wc_lp*(n-N/2))./(pi*(n-N/2));   % sinc desplazada - Pasa bajos
-sinc_desp(N/2+1)=wc_lp/pi;
-lp = sinc_desp;                               % para mayor claridad en el codigo
-
-q = pi-wc_hp;
-hp=((-1).^(n-N/2)).*sin(q*(n-N/2))./(pi*(n-N/2)); % Pasa altos
-hp((N/2+1))=q/pi;
-
-h=lp+hp; 
-
-%% Diseï¿½o del filtro notch 2
-%Creo este filtro como una combinacion de un filtro pasabajos y pasaalto
-
-%Diseï¿½o del pasabajos 2
-
-ws_lp = 0.0168*pi;      
-wp_lp = 0.0164*pi; 
-wc_lp = (ws_lp+wp_lp)/2;                
-
-delta_w_lp=ws_lp-wp_lp;                    
-
-% Diseï¿½o del pasaaltos 2
-ws_hp = 0.0172*pi;      
-wp_hp = 0.0176*pi; 
-wc_hp = (ws_hp+wp_hp)/2;  
-
-delta_w_hp=wp_hp-ws_hp;
-
-delta_w=min(delta_w_lp,delta_w_hp);
-
-N= ceil(4*pi/delta_w); % Orden del filtro.
-if( mod(N,2)~=0 ) % Chequeo si es par
-    N=N+1;
-end
-
-%Creo los filtros
-
-n = 0:N; 
-
-sinc_desp=sin(wc_lp*(n-N/2))./(pi*(n-N/2));   % sinc desplazada - Pasa bajos
-sinc_desp(N/2+1)=wc_lp/pi;
-lp2 = sinc_desp;                               % para mayor claridad en el codigo
-
-q = pi-wc_hp;
-hp2=((-1).^(n-N/2)).*sin(q*(n-N/2))./(pi*(n-N/2)); % Pasa altos
-hp2((N/2+1))=q/pi;
-
-h2=lp2+hp2;
-
-%% Diseï¿½o del filtro notch
-% Creo este filtro como una combinacion de un filtro pasabajos y pasaalto
-
-% Diseï¿½o del pasabajos 3
-
-ws_lp = 0.0325*pi;      
-wp_lp = 0.0305*pi; 
-wc_lp = (ws_lp+wp_lp)/2;                
-
-delta_w_lp=ws_lp-wp_lp;                    
-
-% Diseï¿½o del pasaaltos 3
-ws_hp = 0.0335*pi;      
-wp_hp = 0.0355*pi; 
-wc_hp = (ws_hp+wp_hp)/2;  
-delta_w_hp=wp_hp-ws_hp;
-
-delta_w=min(delta_w_lp,delta_w_hp);
-
-N= ceil(4*pi/delta_w); % Orden del filtro. 
-if( mod(N,2)~=0 ) % Chequeo si es par
-    N=N+1;
-end
-
-%Creo los filtros
-n = 0:N; 
-
-sinc_desp=sin(wc_lp*(n-N/2))./(pi*(n-N/2));   % sinc desplazada - Pasa bajos
-sinc_desp(N/2+1)=wc_lp/pi;
-lp3 = sinc_desp;                               % para mayor claridad en el codigo
-
-q = pi-wc_hp;
-hp3=((-1).^(n-N/2)).*sin(q*(n-N/2))./(pi*(n-N/2)); % Pasa altos
-hp3((N/2+1))=q/pi;
-
-h3=hp3+lp3; 
-
-%Creo  el filtro en cascada
-%h1f = dfilt.df2(h,1);
-%h2f = dfilt.df2(h2,1);
-%h3f = dfilt.df2(h3,1);
-
-%hd = dfilt.cascade(h1f, h2f,h3f);
-
-h12 = conv (h,h2);
+h12 = conv (h1,h2);
 h123 = conv (h12,h3);
-%islinphase(h123)
 
-%% Filtrado de la seï¿½al con ruido
-xconruido = x + noise';
-
+%% Filtrado de la señal con ruido
+xconruido = input + noise';
 y=conv(xconruido,h123); 
 audiowrite('pista_01_noise.wav',xconruido,fs);
 audiowrite('pista_01_cleaned.wav',y,fs);
 y= y/max(y);
 
 %% Graficos
+%Macro usada para escalar los graficos a 1
+MAG_MED = 15770;
 
-X = fft(x,2^nextpow2(length(x)));
-
-XNOISE = fft(xconruido,2^nextpow2(length(x)));
-
+X = fft(input,2^nextpow2(length(input)));
+NOISE = fft(noise',2^nextpow2(length(input)));
+XNOISE = fft(xconruido,2^nextpow2(length(input)));
 Y = fft(y,2^nextpow2(length(y)));
-
 w =(1:length(X)/2)*2*pi/length(X); % Vector de 0 a pi
+H123 = fft(h123,2^nextpow2(length(input)));
 
-%% Filtro notch 1
 
-LP = fft(lp,2^nextpow2(length(x)));
-
-HP = fft(hp,2^nextpow2(length(x)));
-
-H = fft(h,2^nextpow2(length(x)));
-
-%Filtro notch 2
-
-LP2 = fft(lp2,2^nextpow2(length(x)));
-
-HP2 = fft(hp2,2^nextpow2(length(x)));
-
-H2 = fft(h2,2^nextpow2(length(x)));
-
-%Filtro notch 3
-
-LP3 = fft(lp3,2^nextpow2(length(x)));
-
-HP3 = fft(hp3,2^nextpow2(length(x)));
-
-H3 = fft(h3,2^nextpow2(length(x)));
-
-%Filtro en cascada
-H123 = fft(h123,2^nextpow2(length(x)));
-
+figure(4);
+plot(w/pi,abs(NOISE(1:length(w)))/MAG_MED, 'Color', orange);
+grid on
+hold on
+plot(w/pi,abs(H123(1:length(w))),'Color', blue);
+xlim([0 0.05])
+title('Espectro de la interferencia')
+xlabel('\omega [rad/s] (Frecuencia normalizada)')
+ylabel('Amplitud')
+str1 = 'Interferencia';
+str2 = 'Respuesta en módulo del filtro '; 
+legend(str1,str2,'Location','West')
 
 %% Filtro en cascada. Graficos de amplitud y fase
-figure,plot(w/pi,abs(H123(1:length(w))));
-grid on;
-title('Filtro pasabajos diseï¿½ado con ventana rectangular');
-xlabel('\omega (rad/s)');
-ylabel('Amplitud');
-xlim([0 0.1]);
-str = 'Respuesta en mï¿½dulo del filtro total';
-legend(str,'Location','NorthWest');
 
+figure(5)
 
-%figure, plot(w/pi, angle(H123(1:length(w)))), title('Phase plot')
-
-%Seï¿½al filtrada y seï¿½al con ruido
-
-figure()
-
-subplot(2,1,1);
-plot(w/pi,abs(XNOISE(1:length(w))));
-grid on;
-hold on;
-plot(w/pi,abs(H123(1:length(w)))/max(abs(H123(1:length(w))))*max(abs(XNOISE(1:length(w)))),'r');
-xlim([0 1]);
-title('Espectro de la seï¿½al original');
-xlabel('\omega (rad/s)');
-ylabel('Amplitud');
-str1 = 'Seï¿½al original';
-str2 = 'Respuesta en mï¿½dulo del filtro '; 
-legend(str1,str2,'Location','West');
-
-subplot(2,1,2);
-plot(w/pi,abs(Y(1:length(w))),'r');
-xlim([0 1]);
-grid on;
-title('Espectro de la seï¿½al filtrada')
-xlabel('\omega (rad/s)')
+plot(w/pi,abs(H123(1:length(w))),'Color', blue)
+grid on
+title('Filtro notch FLG diseñado con ventana rectangular')
+xlabel('\omega [rad/s] (Frecuencia normalizada)')
 ylabel('Amplitud')
+xlim([0 0.1])
+str = 'Respuesta en módulo del filtro total';
+legend(str,'Location','NorthWest')
 
-% audio = wavread(pista_01.wav);
-% audio_noise = wavread(pista_01_noise.wav);
-% audio_cleaned = wavread(pista_01_cleaned.wav);
+figure(6);
+plot(w/pi,abs(XNOISE(1:length(w)))/MAG_MED, 'Color', orange);
+grid on
+hold on
+plot(w/pi,abs(H123(1:length(w))),'Color', blue);
+xlim([0 0.04])
+title('Espectro de la señal original con ruido')
+xlabel('\omega [rad/s] (Frecuencia normalizada)')
+ylabel('Amplitud')
+str1 = 'Señal original con ruido';
+str2 = 'Respuesta en módulo del filtro '; 
+legend(str1,str2,'Location','West')
 
-%sound("pista_01.wav",fs);
-%sound(pista_01_noise,fs);
-%sound(pista_01_cleaned,fs);
+figure(7);
+
+plot(w/pi,abs(XNOISE(1:length(w)))/(max(abs(XNOISE(1:length(w))))),'Color', orange);
+xlim([0 0.04])
+ylim([0 1.2])
+grid on
+hold on
+
+plot(w/pi,abs(Y(1:length(w)))/(max(abs(XNOISE(1:length(w))))),'Color', blue);
+title('Espectro de la señal filtrada')
+xlabel('\omega [rad/s] (Frecuencia normalizada)')
+ylabel('Amplitud')
+str1 = 'Señal original con ruido';
+str2 = 'Señal filtrada '; 
+legend(str1,str2,'Location','West')
 
 
-% figure();
-% plot(w,20*log10(abs(H(1:length(w)))-1))
+function [hfilter] = notch_flg_rect(wc)
+    %% Diseño del filtro notch
+    % Creo este filtro como una combinacion de un filtro pasabajos y
+    % pasaaltos
+    
+    %Desnormalizo wc
+    wc = wc*pi;
+    
+    % Diseño del pasabajos
+    wc_lpgen = wc - ((wc * 2.5)/100);
+    wc_hpgen = wc + ((wc * 2.5)/100);
+    
+    
+    ws_lpgen = wc_lpgen + ((wc_lpgen * 1)/100);      
+    wp_lpgen = wc_lpgen - ((wc_lpgen * 1)/100); 
+    
+    %Redefino wc
+    wc_lpgen = (ws_lpgen + wp_lpgen)/2;                
 
-% grid on;
-% title('H(jw) - 1, para mirar la  amplitud del ripple');
+    delta_w_lpgen = ws_lpgen-wp_lpgen;                    
 
-% Se exporta el filtro notch fir
+    % Diseño del pasaaltos
+    ws_hpgen = wc_hpgen - ((wc_hpgen * 1)/100);      
+    wp_hpgen = wc_hpgen + ((wc_hpgen * 1)/100);
+    
+    %Redefino wc
+    wc_hpgen = (ws_hpgen + wp_hpgen)/2;  
+    
+    delta_w_hpgen = wp_hpgen-ws_hpgen;
 
-save notch_fir.mat h123;
+    delta_wgen = min(delta_w_lpgen,delta_w_hpgen);
+
+    N = ceil(4*pi/delta_wgen); % Orden del filtro. 
+    if( mod(N,2)~=0 ) % Chequeo si es par
+        N=N+1;
+    end
+
+    %Creo los filtros
+    
+    n = 0:N; 
+    
+    lpgen = sin(wc_lpgen*(n-N/2))./(pi*(n-N/2));   % sinc desplazada - Pasa bajos
+    lpgen(N/2+1) = wc_lpgen/pi;
+    
+    hpgen = ((-1).^(n-N/2)).*sin((pi-wc_hpgen)*(n-N/2))./(pi*(n-N/2)); % Pasa altos
+    hpgen((N/2+1)) = (pi-wc_hpgen)/pi;
+
+    hfilter = hpgen+lpgen;
+end
